@@ -53,4 +53,11 @@ contains
 
   end subroutine initialize_system
 
+  subroutine initialize_problem
+    implicit none
+
+    ! To be filled in for a specific application
+
+  end subroutine initialize_problem
+
 end module initialization

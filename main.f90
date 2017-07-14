@@ -7,6 +7,8 @@ program main
   ! The solver included follows the Platen 2.0 weak scheme for the case in which there are no stocahstic couplings between the different unknown functions
   !       ( no off-diagonal terms in the B matrix containing the stochastic terms)
 
+  ! This particular file is the main body of the code. It should be reduced as much as possible to simply a collection of function calls.
+
   ! Created by Joseph John Fernández, ULL (2017)
 
   use mpi
@@ -30,7 +32,7 @@ program main
     print*, "Sharing data with other processes"
   end if
 
-  ! After initializing the solution data, broadcast to the rest of processes following the example below:
+! After initializing the solution data, broadcast to the rest of processes following the example below:
   ! (repeat as many lines as neccesary, be careful to use the correct parameter in sned_type!!!!)
   ! call mpi_bcast(data_to_be_sent, send_count, send_type, broadcasting_process_ID, comm, ierr)
 
@@ -53,12 +55,12 @@ program main
   rem = mod(traj, procs)
   if (rank .lt. rem) local_traj = local_traj + 1
 
-  ! Now it is time to call the initialization call specific to the problem. This routine should be written for the specific
+! Now it is time to call the initialization call specific to the problem. This routine should be written for the specific
   ! application of the code and stored in "init/initialization.f90". Again, it is read by proc. 0 and distributed subsequently.
   ! Fill in as needed.
   if(rank .eq. 0) then
     print*, "Process 0 reading problem-specific parameters"
-    call initialize_system()
+    call initialize_problem()
     print*, "Sharing data with other processes"
   end if
   ! A broadcast call for each value returned in initialize_system
@@ -84,12 +86,14 @@ program main
   ! call mpi_bcast(data_to_be_sent, send_count, send_type, broadcasting_process_ID, comm, ierr)
   call mpi_bcast(,0, MPI_COMM_WORLD, ierr)
 
+  ! The following loop executes the calculation of the stochastic realizaitions
   do kk=1, local_traj, 1
     print*, "Proc ", rank, " on stoch. realization ", kk
     ! Call the time solver
     if( ( mod(kk,share_freq) .eq. 0) .and. (kk .lt. local_traj) ) then
       ! Partial sharing of results to proc. 0 and calculate intermediate averages. Use reduction functions.
       !call MPI_REDUCE(data_to_be_reduced, recieve_buffer, count, type, op, recieve_id, comm, ierr)
+      call mpi_reduce(,0, MPI_COMM_WORLD, ierr)
       if(rank .eq. 0) then
         ! calculate the averages
 
@@ -100,6 +104,7 @@ program main
 
   ! Final sharing of results to proc. 0 and calculate averages. Use reduction functions.
   !call MPI_REDUCE(data_to_be_reduced, recieve_buffer, count, type, op, recieve_id, comm, ierr)
+  call mpi_reduce(,0, MPI_COMM_WORLD, ierr)
   if(rank .eq. 0) then
     ! calculate the averages
 
